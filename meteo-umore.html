@@ -123,6 +123,43 @@
     min-height: 16px;
   }
 
+  /* Toggle classifica */
+  .toggle-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    font-family: 'DM Sans', sans-serif;
+    margin-bottom: 0;
+  }
+
+  .toggle-btn .arrow {
+    font-size: 12px;
+    color: var(--muted);
+    transition: transform 0.25s;
+    display: inline-block;
+  }
+
+  .toggle-btn.open .arrow {
+    transform: rotate(180deg);
+  }
+
+  .ranking-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s cubic-bezier(.4,0,.2,1), opacity 0.25s;
+    opacity: 0;
+  }
+
+  .ranking-body.open {
+    max-height: 600px;
+    opacity: 1;
+  }
+
   /* Classifica */
   .tabs {
     display: flex;
@@ -249,14 +286,20 @@
 
   <!-- Classifica -->
   <div class="card">
-    <div class="section-title">Classifica del team</div>
-    <div class="tabs">
-      <button class="tab active" data-period="week" onclick="switchTab('week')">Settimana</button>
-      <button class="tab" data-period="month" onclick="switchTab('month')">Mese</button>
-      <button class="tab" data-period="year" onclick="switchTab('year')">Anno</button>
-    </div>
-    <div class="ranking" id="ranking">
-      <div class="loading-rank">Caricamento…</div>
+    <button class="toggle-btn" id="toggle-btn" onclick="toggleRanking()">
+      <div class="section-title" style="margin-bottom:0;">Classifica del team</div>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="ranking-body" id="ranking-body">
+      <div style="height:12px;"></div>
+      <div class="tabs">
+        <button class="tab active" data-period="week" onclick="switchTab('week')">Settimana</button>
+        <button class="tab" data-period="month" onclick="switchTab('month')">Mese</button>
+        <button class="tab" data-period="year" onclick="switchTab('year')">Anno</button>
+      </div>
+      <div class="ranking" id="ranking">
+        <div class="loading-rank">Caricamento…</div>
+      </div>
     </div>
   </div>
 
@@ -413,6 +456,14 @@ async function loadRanking() {
 }
 
 loadRanking();
+
+function toggleRanking() {
+  const body = document.getElementById('ranking-body');
+  const btn  = document.getElementById('toggle-btn');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
 </script>
 </body>
 </html>

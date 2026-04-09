@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Che meteo ti senti oggi?</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F2;
+    --card: #FFFFFF;
+    --text: #1A1A18;
+    --muted: #888780;
+    --border: rgba(0,0,0,0.08);
+    --accent: #3B6D11;
+    --radius: 16px;
+  }
+
+  html, body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 1.25rem;
+  }
+
+  h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .icons-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .icon-btn {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s, border-color 0.15s, background 0.15s;
+    position: relative;
+    outline: none;
+  }
+
+  .icon-btn:hover {
+    transform: scale(1.08);
+    border-color: rgba(0,0,0,0.2);
+  }
+
+  .icon-btn.selected {
+    border-color: var(--accent);
+    background: #EAF3DE;
+    transform: scale(1.08);
+  }
+
+  .icon-btn.selected::after {
+    content: '✓';
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .today-status {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+    min-height: 18px;
+    transition: opacity 0.3s;
+  }
+
+  .today-status.ok {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .saving {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  /* Classifica */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 8px;
+    border: 0.5px solid var(--border);
+    background: var(--bg);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tab.active {
+    background: var(--text);
+    color: #fff;
+    border-color: var(--text);
+  }
+
+  .ranking {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 120px;
+  }
+
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rank-pos {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .rank-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+
+  .rank-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--bg);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .rank-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  .rank-label {
+    font-size: 12px;
+    color: var(--text);
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .rank-count {
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .empty {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .loading-rank {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 1.5rem 0;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Voto -->
+  <div class="card">
+    <h1>Che meteo ti senti oggi?</h1>
+    <p class="subtitle" id="date-label">caricamento…</p>
+    <div class="icons-grid" id="icons-grid"></div>
+    <div class="today-status" id="today-status"></div>
+    <div class="saving" id="saving"></div>
+  </div>
+
+  <!-- Classifica -->
+  <div class="card">
+    <div class="section-title">Classifica del team</div>
+    <div class="tabs">
+      <button class="tab active" data-period="week" onclick="switchTab('week')">Settimana</button>
+      <button class="tab" data-period="month" onclick="switchTab('month')">Mese</button>
+      <button class="tab" data-period="year" onclick="switchTab('year')">Anno</button>
+    </div>
+    <div class="ranking" id="ranking">
+      <div class="loading-rank">Caricamento…</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2eb0Rxsw8caWtrhH7Z3nG2btmYt2JrFnQmfU9qUdpE6kPxYuxC8m_BNe-iWSL8hqH/exec";
+
+const ICONS = [
+  { emoji: "☀️",  label: "Soleggiato" },
+  { emoji: "🌤️", label: "Poco nuvoloso" },
+  { emoji: "⛅",  label: "Nuvoloso" },
+  { emoji: "🌧️", label: "Pioggia" },
+  { emoji: "⛈️", label: "Temporale" },
+  { emoji: "🌨️", label: "Neve" },
+  { emoji: "🌪️", label: "Tornado" },
+];
+
+// User ID anonimo persistente
+function getUserId() {
+  let id = localStorage.getItem('meteo_uid');
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    localStorage.setItem('meteo_uid', id);
+  }
+  return id;
+}
+
+// Data di oggi leggibile
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Voto salvato localmente oggi
+function getSavedVote() {
+  const saved = localStorage.getItem('meteo_vote');
+  if (!saved) return null;
+  try {
+    const obj = JSON.parse(saved);
+    if (obj.date === todayStr()) return obj;
+    return null;
+  } catch { return null; }
+}
+
+function saveVoteLocal(icona, label) {
+  localStorage.setItem('meteo_vote', JSON.stringify({ date: todayStr(), icona, label }));
+}
+
+// Render icone
+const grid = document.getElementById('icons-grid');
+const todayStatus = document.getElementById('today-status');
+const savingEl = document.getElementById('saving');
+
+function renderIcons(selectedEmoji) {
+  grid.innerHTML = '';
+  ICONS.forEach(({ emoji, label }) => {
+    const btn = document.createElement('button');
+    btn.className = 'icon-btn' + (emoji === selectedEmoji ? ' selected' : '');
+    btn.textContent = emoji;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.onclick = () => vote(emoji, label);
+    grid.appendChild(btn);
+  });
+}
+
+// Data label
+const dateLabel = document.getElementById('date-label');
+const d = new Date();
+dateLabel.textContent = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+
+// Init
+const savedVote = getSavedVote();
+renderIcons(savedVote ? savedVote.icona : null);
+if (savedVote) {
+  todayStatus.textContent = 'Hai votato ' + savedVote.icona + ' — puoi cambiare quando vuoi';
+  todayStatus.classList.add('ok');
+}
+
+// Voto
+async function vote(icona, label) {
+  renderIcons(icona);
+  saveVoteLocal(icona, label);
+  todayStatus.textContent = 'Salvato ' + icona + ' — puoi cambiare quando vuoi';
+  todayStatus.classList.add('ok');
+  savingEl.textContent = 'Invio al server…';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ icona, label, user_id: getUserId() })
+    });
+    savingEl.textContent = '✓ Registrato';
+    setTimeout(() => { savingEl.textContent = ''; }, 2000);
+    loadRanking();
+  } catch (err) {
+    savingEl.textContent = 'Errore di connessione';
+  }
+}
+
+// Classifica
+let currentPeriod = 'week';
+let rankData = null;
+
+function switchTab(period) {
+  currentPeriod = period;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.period === period);
+  });
+  if (rankData) renderRanking(rankData);
+}
+
+function renderRanking(counts) {
+  const el = document.getElementById('ranking');
+  const data = counts[currentPeriod] || {};
+
+  const entries = Object.entries(data).map(([key, count]) => {
+    const [emoji, label] = key.split('||');
+    return { emoji, label, count };
+  }).sort((a, b) => b.count - a.count);
+
+  if (entries.length === 0) {
+    el.innerHTML = '<div class="empty">Nessun voto ancora 🌱</div>';
+    return;
+  }
+
+  const max = entries[0].count;
+  el.innerHTML = entries.slice(0, 7).map((e, i) => `
+    <div class="rank-row">
+      <span class="rank-pos">${i + 1}</span>
+      <span class="rank-icon">${e.emoji}</span>
+      <div class="rank-bar-wrap">
+        <div class="rank-bar" style="width:${Math.round((e.count/max)*100)}%"></div>
+      </div>
+      <span class="rank-label">${e.label}</span>
+      <span class="rank-count">${e.count}</span>
+    </div>
+  `).join('');
+}
+
+async function loadRanking() {
+  try {
+    const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const json = await res.json();
+    if (json.success) {
+      rankData = json.counts;
+      renderRanking(rankData);
+    }
+  } catch {
+    document.getElementById('ranking').innerHTML = '<div class="empty">Classifica non disponibile</div>';
+  }
+}
+
+loadRanking();
+</script>
+</body>
+</html>

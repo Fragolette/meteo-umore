@@ -83,14 +83,34 @@ button.icon.selected {
 }
 
 .ranking-body.open {
-  max-height: 400px;
+  max-height: 500px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  cursor: pointer;
+  background: #f7f5f2;
+}
+
+.tab.active {
+  background: black;
+  color: white;
 }
 
 .rank {
   font-size: 12px;
   margin: 6px 0;
 }
-
 </style>
 </head>
 
@@ -114,6 +134,13 @@ button.icon.selected {
   </button>
 
   <div class="ranking-body" id="rankingBody">
+
+    <div class="tabs">
+      <button class="tab active" data-period="week" onclick="switchTab('week')">Settimana</button>
+      <button class="tab" data-period="month" onclick="switchTab('month')">Mese</button>
+      <button class="tab" data-period="year" onclick="switchTab('year')">Anno</button>
+    </div>
+
     <div id="ranking">Caricamento...</div>
   </div>
 </div>
@@ -133,6 +160,9 @@ const ICONS = [
   { emoji: "🌪️", label: "Tornado" }
 ];
 
+let currentPeriod = "week";
+let rankData = null;
+
 function getUserId() {
   let id = localStorage.getItem("meteo_uid");
   if (!id) {
@@ -142,14 +172,8 @@ function getUserId() {
   return id;
 }
 
-function todayStr() {
-  return new Date().toISOString().split("T")[0];
-}
-
-const grid = document.getElementById("grid");
-const status = document.getElementById("status");
-
 function render(selected) {
+  const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
   ICONS.forEach(icon => {
@@ -157,20 +181,16 @@ function render(selected) {
     btn.className = "icon";
     btn.textContent = icon.emoji;
 
-    if (selected === icon.emoji) {
-      btn.classList.add("selected");
-    }
+    if (selected === icon.emoji) btn.classList.add("selected");
 
     btn.onclick = () => vote(icon);
-
     grid.appendChild(btn);
   });
 }
 
 async function vote(icon) {
   render(icon.emoji);
-
-  status.innerText = "Salvataggio...";
+  document.getElementById("status").innerText = "Salvataggio...";
 
   const params = new URLSearchParams({
     action: "vote",
@@ -181,15 +201,23 @@ async function vote(icon) {
 
   await fetch(SCRIPT_URL + "?" + params.toString());
 
-  status.innerText = "Salvato!";
+  document.getElementById("status").innerText = "Salvato!";
   loadRanking();
 }
 
-async function loadRanking() {
-  const res = await fetch(SCRIPT_URL + "?action=ranking&t=" + Date.now());
-  const json = await res.json();
+function switchTab(period) {
+  currentPeriod = period;
 
-  const data = json.counts.week || {};
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.period === period);
+  });
+
+  if (rankData) renderRanking();
+}
+
+function renderRanking() {
+  const data = rankData[currentPeriod] || {};
+  const el = document.getElementById("ranking");
 
   const entries = Object.entries(data)
     .map(([k, v]) => {
@@ -198,9 +226,7 @@ async function loadRanking() {
     })
     .sort((a, b) => b.count - a.count);
 
-  const el = document.getElementById("ranking");
-
-  if (entries.length === 0) {
+  if (!entries.length) {
     el.innerHTML = "Nessun voto";
     return;
   }
@@ -208,6 +234,14 @@ async function loadRanking() {
   el.innerHTML = entries.map(e =>
     `<div class="rank">${e.emoji} ${e.label} — ${e.count}</div>`
   ).join("");
+}
+
+async function loadRanking() {
+  const res = await fetch(SCRIPT_URL + "?action=ranking&t=" + Date.now());
+  const json = await res.json();
+
+  rankData = json.counts;
+  renderRanking();
 }
 
 function toggleRanking() {

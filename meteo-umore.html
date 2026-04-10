@@ -107,7 +107,6 @@
     text-align: center;
     margin-top: 10px;
     min-height: 18px;
-    transition: opacity 0.3s;
   }
 
   .today-status.ok {
@@ -123,7 +122,6 @@
     min-height: 16px;
   }
 
-  /* Toggle classifica */
   .toggle-btn {
     width: 100%;
     background: none;
@@ -134,7 +132,6 @@
     justify-content: space-between;
     padding: 0;
     font-family: 'DM Sans', sans-serif;
-    margin-bottom: 0;
   }
 
   .toggle-btn .arrow {
@@ -160,7 +157,6 @@
     opacity: 1;
   }
 
-  /* Classifica */
   .tabs {
     display: flex;
     gap: 4px;
@@ -275,7 +271,6 @@
 <body>
 <div class="wrap">
 
-  <!-- Voto -->
   <div class="card">
     <h1>Che meteo ti senti oggi?</h1>
     <p class="subtitle" id="date-label">caricamento…</p>
@@ -284,7 +279,6 @@
     <div class="saving" id="saving"></div>
   </div>
 
-  <!-- Classifica -->
   <div class="card">
     <button class="toggle-btn" id="toggle-btn" onclick="toggleRanking()">
       <div class="section-title" style="margin-bottom:0;">Classifica del team</div>
@@ -306,7 +300,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZMc5uk9JsQE80HfzhuIaeqCb6IARR52NajbjRFU9vWcsXVEcOegUX6826F_c0f_4s/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2eb0Rxsw8caWtrhH7Z3nG2btmYt2JrFnQmfU9qUdpE6kPxYuxC8m_BNe-iWSL8hqH/exec";
 
 const ICONS = [
   { emoji: "☀️",  label: "Soleggiato" },
@@ -318,7 +312,6 @@ const ICONS = [
   { emoji: "🌪️", label: "Tornado" },
 ];
 
-// User ID anonimo persistente
 function getUserId() {
   let id = localStorage.getItem('meteo_uid');
   if (!id) {
@@ -328,12 +321,10 @@ function getUserId() {
   return id;
 }
 
-// Data di oggi leggibile
 function todayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
-// Voto salvato localmente oggi
 function getSavedVote() {
   const saved = localStorage.getItem('meteo_vote');
   if (!saved) return null;
@@ -348,7 +339,6 @@ function saveVoteLocal(icona, label) {
   localStorage.setItem('meteo_vote', JSON.stringify({ date: todayStr(), icona, label }));
 }
 
-// Render icone
 const grid = document.getElementById('icons-grid');
 const todayStatus = document.getElementById('today-status');
 const savingEl = document.getElementById('saving');
@@ -366,12 +356,10 @@ function renderIcons(selectedEmoji) {
   });
 }
 
-// Data label
 const dateLabel = document.getElementById('date-label');
 const d = new Date();
 dateLabel.textContent = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
 
-// Init
 const savedVote = getSavedVote();
 renderIcons(savedVote ? savedVote.icona : null);
 if (savedVote) {
@@ -379,7 +367,6 @@ if (savedVote) {
   todayStatus.classList.add('ok');
 }
 
-// Voto
 async function vote(icona, label) {
   renderIcons(icona);
   saveVoteLocal(icona, label);
@@ -388,21 +375,26 @@ async function vote(icona, label) {
   savingEl.textContent = 'Invio al server…';
 
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ icona, label, user_id: getUserId() })
+    const params = new URLSearchParams({
+      action: 'vote',
+      icona: icona,
+      label: label,
+      user_id: getUserId()
     });
-    savingEl.textContent = '✓ Registrato';
-    setTimeout(() => { savingEl.textContent = ''; }, 2000);
+    const res = await fetch(SCRIPT_URL + '?' + params.toString());
+    const json = await res.json();
+    if (json.success) {
+      savingEl.textContent = json.action === 'updated' ? '✓ Voto aggiornato' : '✓ Registrato';
+    } else {
+      savingEl.textContent = 'Errore: ' + (json.error || 'sconosciuto');
+    }
+    setTimeout(() => { savingEl.textContent = ''; }, 2500);
     loadRanking();
   } catch (err) {
     savingEl.textContent = 'Errore di connessione';
   }
 }
 
-// Classifica
 let currentPeriod = 'week';
 let rankData = null;
 
@@ -444,7 +436,7 @@ function renderRanking(counts) {
 
 async function loadRanking() {
   try {
-    const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const res = await fetch(SCRIPT_URL + '?action=ranking&t=' + Date.now());
     const json = await res.json();
     if (json.success) {
       rankData = json.counts;
